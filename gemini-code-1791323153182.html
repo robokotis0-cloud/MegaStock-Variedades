@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Megastock Variedades</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; color: #333; }
+        header { background: #1a252f; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; sticky: top; }
+        header h1 { font-size: 1.5rem; color: #f39c12; }
+        nav button { background: #34495e; color: white; border: none; padding: 8px 15px; margin-left: 10px; cursor: pointer; border-radius: 4px; }
+        nav button:hover { background: #2c3e50; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: space-between; padding: 15px; }
+        .card img { width: 100%; height: 200px; object-fit: cover; border-radius: 4px; }
+        .card h3 { margin: 10px 0; font-size: 1.1rem; }
+        .card p { color: #27ae60; font-weight: bold; font-size: 1.2rem; margin-bottom: 10px; }
+        .btn { background: #27ae60; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; text-align: center; width: 100%; font-weight: bold; }
+        .btn:hover { background: #219150; }
+        .btn-admin { background: #e67e22; }
+        
+        /* Modais */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal h2 { margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .close-btn { background: #c0392b; color: white; border: none; padding: 5px 10px; float: right; cursor: pointer; border-radius: 4px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 8px; text-align: left; font-size: 0.9rem; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Megastock Variedades</h1>
+        <nav>
+            <button onclick="abrirModal('carrinhoModal')">🛒 Carrinho (<span id="cart-count">0</span>)</button>
+            <button class="btn-admin" onclick="abrirModal('adminModal')">⚙️ Painel Admin</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h2>🔥 Produtos Mais Vendidos & em Alta</h2>
+        <br>
+        <div class="grid" id="lista-produtos"></div>
+    </div>
+
+    <!-- Modal Carrinho / Checkout -->
+    <div id="carrinhoModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="fecharModal('carrinhoModal')">X</button>
+            <h2>Finalizar Compra</h2>
+            <div id="itens-carrinho"></div>
+            <p style="margin: 15px 0;">Total: <strong id="total-carrinho">R$ 0,00</strong></p>
+            <hr><br>
+            <h3>Dados de Entrega</h3>
+            <form id="checkout-form" onsubmit="finalizarPedido(event)">
+                <div class="form-group">
+                    <label>Nome Completo:</label>
+                    <input type="text" id="cliente-nome" required>
+                </div>
+                <div class="form-group">
+                    <label>CEP:</label>
+                    <input type="text" id="cliente-cep" placeholder="00000-000" required>
+                </div>
+                <div class="form-group">
+                    <label>Endereço Completo (Rua, Número, Bairro):</label>
+                    <input type="text" id="cliente-endereco" required>
+                </div>
+                <button type="submit" class="btn">Confirmar e Enviar Pedido</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Admin -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="fecharModal('adminModal')">X</button>
+            <h2>Painel Administrativo</h2>
+            
+            <br>
+            <h3>➕ Adicionar Novo Produto</h3>
+            <form onsubmit="adicionarProduto(event)" style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Nome do Produto:</label>
+                    <input type="text" id="p-nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Preço (R$):</label>
+                    <input type="number" step="0.01" id="p-preco" required>
+                </div>
+                <div class="form-group">
+                    <label>URL da Imagem:</label>
+                    <input type="url" id="p-img" required>
+                </div>
+                <button type="submit" class="btn" style="background:#2980b9;">Cadastrar Produto</button>
+            </form>
+
+            <hr><br>
+            <h3>📦 Pedidos Recebidos</h3>
+            <div id="lista-pedidos">
+                <p>Nenhum pedido realizado ainda.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Produtos Iniciais (Mais Vendidos em Dropshipping)
+        let produtos = JSON.parse(localStorage.getItem('megastock_produtos')) || [
+            { id: 1, nome: "Mini Processador de Alimentos Elétrico", preco: 49.90, img: "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=400" },
+            { id: 2, nome: "Projetor Portátil HD Smart", preco: 299.90, img: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400" },
+            { id: 3, nome: "Fone de Ouvido Bluetooth Sem Fio", preco: 79.90, img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400" },
+            { id: 4, nome: "Umidificador e Aromatizador Flame RGB", preco: 89.90, img: "https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400" }
+        ];
+
+        let carrinho = [];
+        let pedidos = JSON.parse(localStorage.getItem('megastock_pedidos')) || [];
+
+        function renderProdutos() {
+            const grid = document.getElementById('lista-produtos');
+            grid.innerHTML = '';
+            produtos.forEach(p => {
+                grid.innerHTML += `
+                    <div class="card">
+                        <img src="${p.img}" alt="${p.nome}">
+                        <h3>${p.nome}</h3>
+                        <p>R$ ${p.preco.toFixed(2)}</p>
+                        <button class="btn" onclick="adicionarAoCarrinho(${p.id})">Comprar Agora</button>
+                    </div>
+                `;
+            });
+            localStorage.setItem('megastock_produtos', JSON.stringify(produtos));
+        }
+
+        function adicionarAoCarrinho(id) {
+            const prod = produtos.find(p => p.id === id);
+            carrinho.push(prod);
+            document.getElementById('cart-count').innerText = carrinho.length;
+            alert(`${prod.nome} foi adicionado ao carrinho!`);
+        }
+
+        function abrirModal(id) {
+            document.getElementById(id).style.display = 'flex';
+            if(id === 'carrinhoModal') renderCarrinho();
+            if(id === 'adminModal') renderPedidos();
+        }
+
+        function fecharModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function renderCarrinho() {
+            const container = document.getElementById('itens-carrinho');
+            const totalEl = document.getElementById('total-carrinho');
+            container.innerHTML = '';
+            let total = 0;
+
+            carrinho.forEach(item => {
+                total += item.preco;
+                container.innerHTML += `<p>• ${item.nome} - R$ ${item.preco.toFixed(2)}</p>`;
+            });
+
+            totalEl.innerText = `R$ ${total.toFixed(2)}`;
+        }
+
+        function finalizarPedido(e) {
+            e.preventDefault();
+            if(carrinho.length === 0) {
+                alert("Seu carrinho está vazio!");
+                return;
+            }
+
+            const novoPedido = {
+                id: Date.now(),
+                cliente: document.getElementById('cliente-nome').value,
+                cep: document.getElementById('cliente-cep').value,
+                endereco: document.getElementById('cliente-endereco').value,
+                itens: [...carrinho],
+                total: carrinho.reduce((sum, item) => sum + item.preco, 0),
+                data: new Date().toLocaleDateString('pt-BR')
+            };
+
+            pedidos.push(novoPedido);
+            localStorage.setItem('megastock_pedidos', JSON.stringify(pedidos));
+            
+            carrinho = [];
+            document.getElementById('cart-count').innerText = 0;
+            document.getElementById('checkout-form').reset();
+            fecharModal('carrinhoModal');
+            
+            alert("Pedido realizado com sucesso! Você pode visualizar os detalhes no Painel Admin.");
+        }
+
+        function renderPedidos() {
+            const container = document.getElementById('lista-pedidos');
+            if (pedidos.length === 0) {
+                container.innerHTML = '<p>Nenhum pedido cadastrado.</p>';
+                return;
+            }
+
+            let html = `<table>
+                <tr>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>CEP</th>
+                    <th>Endereço</th>
+                    <th>Valor</th>
+                </tr>`;
+
+            pedidos.forEach(p => {
+                html += `
+                    <tr>
+                        <td>${p.data}</td>
+                        <td>${p.cliente}</td>
+                        <td>${p.cep}</td>
+                        <td>${p.endereco}</td>
+                        <td>R$ ${p.total.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        }
+
+        function adicionarProduto(e) {
+            e.preventDefault();
+            const novo = {
+                id: Date.now(),
+                nome: document.getElementById('p-nome').value,
+                preco: parseFloat(document.getElementById('p-preco').value),
+                img: document.getElementById('p-img').value
+            };
+
+            produtos.push(novo);
+            renderProdutos();
+            fecharModal('adminModal');
+            alert("Produto publicado com sucesso!");
+        }
+
+        renderProdutos();
+    </script>
+</body>
+</html>
